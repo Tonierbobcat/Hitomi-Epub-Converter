@@ -42,6 +42,10 @@ def progress(prefix, total, current, length=40):
     sys.stdout.write(f'\r{prefix} |{bar}| {percent:.1f}% ({current}/{total})')
     sys.stdout.flush()
 
+def clear_progress(length=80):
+    # Overwrite the current line with spaces and return to start
+    sys.stdout.write('\r' + ' ' * length + '\r')
+    sys.stdout.flush()
 
 def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", language="en"):
     book = epub.EpubBook()
@@ -82,11 +86,13 @@ def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", la
             book.add_item(img_item)
         added_pages += 1
         progress("EPUB", len(pages_to_add), added_pages)
+    clear_progress()
 
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
     # write
+    print("Writing...")
     epub.write_epub(output_epub, book)
 
 def download_hitomi(target, url):
@@ -124,6 +130,7 @@ def convert_images_to_target_dir(source, target):
         convert_image_to_jpg(file)
         converted_images += 1
         progress("CONVERT", len(amount_to_convert), converted_images)
+    clear_progress()
 
 def start_convert(url, delete_gallery_cache):
     parsed_url = parse_url(url)
@@ -178,14 +185,9 @@ def start_convert(url, delete_gallery_cache):
     folders_to_delete.append(delete_tmp)
     if delete_gallery_cache:
         folders_to_delete.append(delete_cache)
-
-    deleted = 0
-
     for function in folders_to_delete:
         function()
-        deleted += 1
-        progress("DELETE", len(folders_to_delete), deleted)
-    print("")
+
     # print output
     print(f"Successfully converted. {output_epub}")
 
