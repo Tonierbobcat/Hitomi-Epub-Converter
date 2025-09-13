@@ -170,30 +170,36 @@ def start_convert(url, delete_gallery_cache):
     print(f"Successfully converted. {output_epub}")
 
 if len(sys.argv) < 2:
-    print("usage: hitomi-epub-converter <-i|-b> <[url]|[text-file]>")
+    print(f"usage: {sys.argv[0]} <-i|-b> <[url]|[text-file]> [-x]")
     sys.exit(1)
 
 option = sys.argv[1]
 
 if option == "-i":
+    delete_cache = False
     if len(sys.argv) < 3:
-        print("usage: hitomi-epub-converter -i [url]")
+        print(f"usage: {sys.argv[0]} -i [url] [-x]")
         sys.exit(1)
     
-    url = sys.argv[2]
-
-    delete_cache = False
-    if len(sys.argv) == 4 and sys.argv[2] == "-x":
+    if sys.argv[2] == "-x" and len(sys.argv) >= 4:
         url = sys.argv[3]
         delete_cache = True
+    else:
+        url = sys.argv[2]
 
     start_convert(url, delete_cache)
     sys.exit(0)
 
-if option == "-b":
+elif option == "-b":
     if len(sys.argv) < 3:
-        print("usage: hitomi-epub-converter -b [text-file]")
+        print(f"usage: {sys.argv[0]} -b [text-file]")
         sys.exit(1)
     
+    # Call your batch processing function here
+    # process_batch(sys.argv[2])
     sys.exit(0)
 
+else:
+    print(f"Unknown option: {option}")
+    print(f"usage: {sys.argv[0]} <-i|-b> <[url]|[text-file]> [-x]")
+    sys.exit(1)
