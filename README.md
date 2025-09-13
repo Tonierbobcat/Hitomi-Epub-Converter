@@ -1,4 +1,4 @@
-A CLI tool for converting hitomi.la managas into epubs
+## A CLI tool for converting hitomi.la managas into .epub files
 
 # Install dependencies
 ```bash
