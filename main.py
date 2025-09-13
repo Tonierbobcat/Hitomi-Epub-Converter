@@ -11,6 +11,11 @@ import sys
 
 from gallery_dl import config, extractor, job
 
+home = os.path.expanduser("~")
+data_folder = f"{home}/hitomi-epub-converter"
+cache_folder = f"{data_folder}/cache"
+tmp_folder = f"{data_folder}/tmp"
+
 def parse_url(url):
     decoded = urllib.parse.unquote(url)
     decoded = decoded.split('#')[0]
@@ -33,8 +38,10 @@ def progress(prefix, total, current, length=40):
     filled_length = int(length * fraction)
     bar = '=' * filled_length + '-' * (length - filled_length)
     percent = fraction * 100
+
     sys.stdout.write(f'\r{prefix} |{bar}| {percent:.1f}% ({current}/{total})')
     sys.stdout.flush()
+
 
 def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", language="en"):
     book = epub.EpubBook()
@@ -75,7 +82,7 @@ def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", la
             book.add_item(img_item)
         added_pages += 1
         progress("EPUB", len(pages_to_add), added_pages)
-    
+
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
@@ -118,7 +125,7 @@ def convert_images_to_target_dir(source, target):
         converted_images += 1
         progress("CONVERT", len(amount_to_convert), converted_images)
 
-def start_convert(url):
+def start_convert(url, delete_gallery_cache):
     parsed_url = parse_url(url)
     formated_url = format_parsed_url(parsed_url)
 
@@ -129,19 +136,9 @@ def start_convert(url):
         *title_parts, doujinshi_id = formated_url.rsplit(' ', 1)
         title = ' '.join(title_parts)
 
-    home = os.path.expanduser("~")
+    output_epub = f"{data_folder}/{title}.epub"
 
-    save_folder = f"{home}/hitomi-epub-converter"
-
-    output_epub = f"{save_folder}/{title}.epub"
-
-    delete_gallery_cache = False
-
-    cache_folder = f"{save_folder}/cache"
-
-    hitomi_target = f"{save_folder}/cache/{doujinshi_id} {title}"
-
-    tmp_folder = f"{save_folder}/tmp"
+    hitomi_target = f"{data_folder}/cache/{doujinshi_id} {title}"
 
     def delete_tmp():
         if os.path.exists(tmp_folder):
@@ -157,7 +154,7 @@ def start_convert(url):
 
     # validate folders
     # hitomi target added the end
-    for folder in [save_folder, cache_folder, tmp_folder, hitomi_target]:
+    for folder in [data_folder, cache_folder, tmp_folder, hitomi_target]:
         if not os.path.exists(folder):
             os.mkdir(folder, mode=0o777)
 
@@ -187,25 +184,33 @@ def start_convert(url):
     for function in folders_to_delete:
         function()
         deleted += 1
-
-    progress("DELETE", len(folders_to_delete), deleted)
+        progress("DELETE", len(folders_to_delete), deleted)
+    print("")
     # print output
     print(f"Successfully converted. {output_epub}")
 
-if (len(sys.argv) < 2):
+if len(sys.argv) < 2:
     print("usage: hitomi-epub-converter <-i|-b> <[url]|[text-file]>")
     sys.exit(1)
 
 option = sys.argv[1]
 
-if (option == "-i"):
+if option == "-i":
     if len(sys.argv) < 3:
         print("usage: hitomi-epub-converter -i [url]")
         sys.exit(1)
+    
     url = sys.argv[2]
-    start_convert(url)
+
+    delete_cache = False
+    if len(sys.argv) == 4 and sys.argv[2] == "-x":
+        url = sys.argv[3]
+        delete_cache = True
+
+    start_convert(url, delete_cache)
     sys.exit(0)
-if (option == "-b"):
+
+if option == "-b":
     if len(sys.argv) < 3:
         print("usage: hitomi-epub-converter -b [text-file]")
         sys.exit(1)
