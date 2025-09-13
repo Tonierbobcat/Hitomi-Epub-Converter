@@ -22,6 +22,13 @@ chmod +x install.sh
 
 sudo ./install.sh
 ```
+# Windows Install
+```bash
+git clone https://github.com/Tonierbobcat/Hitomi-Epub-Converter.git
+cd Hitomi-Epub-Converter
+
+python3 main.py [url]
+```
 # Usage
 ```bash
 hitomi-epub-converter [url]
