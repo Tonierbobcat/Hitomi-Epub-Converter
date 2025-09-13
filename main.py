@@ -76,6 +76,10 @@ def convert_to_epub(extract_folder, title, author="Unknown", language="en", id="
     # write
     epub.write_epub(output_epub, book)
 
+if len(sys.argv) < 2:
+    print("ERROR. You must have a url specified.")
+    sys.exit(1)
+
 url = sys.argv[1]
 base = trim_url_to_name(url)
 home = os.path.expanduser("~")
