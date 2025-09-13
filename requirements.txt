@@ -1,0 +1,3 @@
+Pillow
+EbookLib
+gallery-dl
