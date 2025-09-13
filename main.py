@@ -8,7 +8,7 @@ import os
 import urllib.parse
 import shutil
 import sys
-
+import re
 from rich import print
 from rich.progress import Progress
 
@@ -121,7 +121,11 @@ def start_convert(url, delete_gallery_cache):
         *title_parts, doujinshi_id = formated_url.rsplit(' ', 1)
         title = ' '.join(title_parts)
 
-    output_epub = f"{data_folder}/{title}.epub"
+
+    legal_title = re.sub(r'[:?"*\\|/]', ' ', title)
+
+    # rakuten kobo doesnt allow files that contain : ? " * \ | /"
+    output_epub = f"{data_folder}/{legal_title}.epub"
 
     hitomi_target = f"{data_folder}/cache/{doujinshi_id} {title}"
 
