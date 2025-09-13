@@ -86,7 +86,7 @@ if not os.path.exists(save_folder):
 
 output_epub = f"{save_folder}/{base}.epub"
 delete_gallery_cache = False
-hitomi_target = "gallery-dl-cache"
+hitomi_target = f"{save_folder}/cache"
 
 if not os.path.exists(hitomi_target):
     os.mkdir(hitomi_target, mode=0o777)
@@ -95,7 +95,7 @@ hitomi_output = f"{hitomi_target}/hitomi"
 
 subprocess.run(["gallery-dl", "-d", hitomi_target, url])
 
-tmp_folder = "tmp"
+tmp_folder = f"{save_folder}/tmp"
 if not os.path.exists(tmp_folder):
     os.mkdir(tmp_folder, mode=0o777)
 
