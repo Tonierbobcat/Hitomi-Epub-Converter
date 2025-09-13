@@ -36,6 +36,24 @@ def format_parsed_url(url):
 
     return basename
 
+def convert_to_pdf(extract_folder, output_pdf, title, id, author="Unknown", language="en"):
+    images = sorted(os.listdir(extract_folder))
+    images = [img for img in images if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
+  
+    image_list = []
+    for img_file in images:
+        img_path = os.path.join(extract_folder, img_file)
+        im = Image.open(img_path)
+        if im.mode != 'RGB':
+            im = im.convert('RGB')
+        image_list.append(im)
+    
+
+    if image_list:
+        first_image = image_list.pop(0)
+        print("Writing...")
+        first_image.save(output_pdf, save_all=True, append_images=image_list)
+
 def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", language="en"):
     book = epub.EpubBook()
 
@@ -169,7 +187,10 @@ def start_convert(url, delete_gallery_cache):
     convert_images_to_target_dir(hitomi_target, tmp_folder)
 
     # convert to epub
-    convert_to_epub(tmp_folder, output_epub, title, doujinshi_id)
+    # convert_to_epub(tmp_folder, output_epub, title, doujinshi_id)
+
+    output_epub = f"{data_folder}/{legal_title}.pdf"
+    convert_to_pdf(tmp_folder, output_epub, title, doujinshi_id)
 
     # cleanup
     folders_to_delete = []
