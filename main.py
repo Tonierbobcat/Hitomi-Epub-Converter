@@ -9,12 +9,22 @@ import urllib.parse
 import shutil
 import sys
 
-def trim_url_to_name(url):
+def parse_url(url):
     decoded = urllib.parse.unquote(url)
     decoded = decoded.split('#')[0]
-    if decoded.endswith(".html"):
-        decoded = decoded[:-5]
-    return os.path.basename(decoded)
+    return decoded
+
+def format_parsed_url(url):
+    basename = os.path.basename(url)
+    if basename.endswith(".html"):
+        basename = basename[:-5]
+
+    parts = basename.split('-')
+    parts = [part[0].upper() + part[1:] if part else '' for part in parts]
+
+    basename = ' '.join(parts)
+
+    return basename
 
 def progress(prefix, total, current, length=40):
     fraction = current / total
@@ -24,13 +34,7 @@ def progress(prefix, total, current, length=40):
     sys.stdout.write(f'\r{prefix} |{bar}| {percent:.1f}% ({current}/{total})')
     sys.stdout.flush()
 
-def convert_image(path, output_folder):
-    img = Image.open(path)
-    img = img.convert("RGB")
-    base = os.path.splitext(os.path.basename(path))[0]
-    img.save(f"{output_folder}/{base}.jpg", "JPEG")
-
-def convert_to_epub(extract_folder, title, author="Unknown", language="en", id="id123456"):
+def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", language="en"):
     book = epub.EpubBook()
 
     book.set_identifier(id)
@@ -76,66 +80,131 @@ def convert_to_epub(extract_folder, title, author="Unknown", language="en", id="
     # write
     epub.write_epub(output_epub, book)
 
-if len(sys.argv) < 2:
-    print("ERROR. You must have a url specified.")
+def download_hitomi(target, url):
+    # subprocess.run(["gallery-dl", "-d", target, url])
+    return
+
+def exit_cannot_convert_epub(reason):
+    print(f"Could not convert into an epub. {reason}")
     sys.exit(1)
 
-url = sys.argv[1]
-base = trim_url_to_name(url)
-home = os.path.expanduser("~")
+def convert_images_to_target_dir(source, target):
+    
+    def convert_image_to_jpg(path):
+        img = Image.open(path)
+        img = img.convert("RGB")
+        base = os.path.splitext(os.path.basename(path))[0]
+        img.save(f"{target}/{base}.jpg", "JPEG")
 
-save_folder = f"{home}/hitomi-epub-converter"
-if not os.path.exists(save_folder):
-    os.mkdir(save_folder, mode=0o777)
+    amount_to_convert = []
 
-output_epub = f"{save_folder}/{base}.epub"
-delete_gallery_cache = False
-hitomi_target = f"{save_folder}/cache"
-
-if not os.path.exists(hitomi_target):
-    os.mkdir(hitomi_target, mode=0o777)
-
-hitomi_output = f"{hitomi_target}/hitomi"
-
-subprocess.run(["gallery-dl", "-d", hitomi_target, url])
-
-tmp_folder = f"{save_folder}/tmp"
-if not os.path.exists(tmp_folder):
-    os.mkdir(tmp_folder, mode=0o777)
-
-amount_to_convert = []
-
-for root, dirs, files in os.walk(hitomi_output):
-    for file in files:
-        if file.lower().endswith((".webp", ".png", ".jpg")):
-            full_path = os.path.join(root, file)
+    for file in os.listdir(source):
+        if file.endswith((".webp", ".png", ".jpg")):sys.exit(0)
             amount_to_convert.append(full_path)
-            
-converted_images = 0
 
-for file in amount_to_convert:
-    convert_image(file, tmp_folder)
-    converted_images += 1
-    progress("CONVERT", len(amount_to_convert), converted_images)
+    # for root, dirs, files in os.walk(source):
+    #     for file in files:
+    #         if file.lower().endswith((".webp", ".png", ".jpg")):
+    #             full_path = os.path.join(root, file)
+    #             amount_to_convert.append(full_path)
+                
+    converted_images = 0
+    for file in amount_to_convert:
+        convert_image_to_jpg(file)
+        converted_images += 1
+        progress("CONVERT", len(amount_to_convert), converted_images)
 
-# convert to epub
-convert_to_epub(tmp_folder, f"{base}")
+def start_convert(url):
+    parsed_url = parse_url(url)
+    formated_url = format_parsed_url(parsed_url)
 
-# cleanup
-folders_to_delete = []
+    title = ""
+    doujinshi_id = ""
 
-if delete_gallery_cache:
-    folders_to_delete.extend([hitomi_target, tmp_folder])
-else:
-    folders_to_delete.append(tmp_folder)
+    if formated_url.strip():
+        *title_parts, doujinshi_id = formated_url.rsplit(' ', 1)
+        title = ' '.join(title_parts)
 
-deleted = 0
+    home = os.path.expanduser("~")
 
-for folder in folders_to_delete:
-    if os.path.exists(folder):
-        shutil.rmtree(folder)
-    deleted += 1
+    save_folder = f"{home}/hitomi-epub-converter"
+
+    output_epub = f"{save_folder}/{title}.epub"
+
+    delete_gallery_cache = False
+
+    cache_folder = f"{save_folder}/cache"
+
+    hitomi_target = f"{save_folder}/cache/{doujinshi_id} {title}"
+
+    tmp_folder = f"{save_folder}/tmp"
+
+    def delete_tmp():
+        if os.path.exists(tmp_folder):
+            shutil.rmtree(tmp_folder)
+        return
+    def delete_cache():
+        if os.path.exists(hitomi_target):
+            shutil.rmtree(hitomi_target)
+        return
+
+    # delete old tmp
+    delete_tmp()
+
+    # validate folders
+    # hitomi target added the end
+    for folder in [save_folder, cache_folder, tmp_folder, hitomi_target]:
+        if not os.path.exists(folder):
+            os.mkdir(folder, mode=0o777)
+
+    # download manga/doujinshi
+    print(f"Downloading {title} ({doujinshi_id})...")
+    download_hitomi(hitomi_target, url)
+    downloaded = len(os.listdir(hitomi_target))
+    if downloaded <= 0:
+        exit_cannot_convert_epub("No pages were downloaded.")
+    print(f"Downloaded {downloaded} page(s)")
+    
+    # copy images to output and converts them
+    convert_images_to_target_dir(hitomi_target, tmp_folder)
+
+    # convert to epub
+    convert_to_epub(tmp_folder, output_epub, title, doujinshi_id)
+
+    # cleanup
+    folders_to_delete = []
+
+    folders_to_delete.append(delete_tmp)
+    if delete_gallery_cache:
+        folders_to_delete.append(delete_cache)
+
+    deleted = 0
+
+    for function in folders_to_delete:
+        function()
+        deleted += 1
+
     progress("DELETE", len(folders_to_delete), deleted)
+    # print output
+    print(f"Successfully converted. {output_epub}")
 
-# print output
-print(f"{output_epub}")
+if (len(sys.argv) < 2):
+    print("usage: hitomi-epub-converter <-i|-b> <[url]|[text-file]>")
+    sys.exit(1)
+
+option = sys.argv[1]
+
+if (option == "-i"):
+    if len(sys.argv) < 3:
+        print("usage: hitomi-epub-converter -i [url]")
+        sys.exit(1)
+    url = sys.argv[2]
+    start_convert(url)
+    sys.exit(0)
+if (option == "-b"):
+    if len(sys.argv) < 3:
+        print("usage: hitomi-epub-converter -b [text-file]")
+        sys.exit(1)
+    
+    sys.exit(0)
+
