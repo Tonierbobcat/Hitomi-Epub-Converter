@@ -9,6 +9,9 @@ import urllib.parse
 import shutil
 import sys
 
+from rich import print
+from rich.progress import Progress
+
 from gallery_dl import config, extractor, job
 
 home = os.path.expanduser("~")
@@ -33,20 +36,6 @@ def format_parsed_url(url):
 
     return basename
 
-def progress(prefix, total, current, length=40):
-    fraction = current / total
-    filled_length = int(length * fraction)
-    bar = '=' * filled_length + '-' * (length - filled_length)
-    percent = fraction * 100
-
-    sys.stdout.write(f'\r{prefix} |{bar}| {percent:.1f}% ({current}/{total})')
-    sys.stdout.flush()
-
-def clear_progress(length=80):
-    # Overwrite the current line with spaces and return to start
-    sys.stdout.write('\r' + ' ' * length + '\r')
-    sys.stdout.flush()
-
 def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", language="en"):
     book = epub.EpubBook()
 
@@ -58,14 +47,7 @@ def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", la
     # collect as XHTML pages
     images = sorted(os.listdir(extract_folder))
 
-    pages_to_add = []
-
     for i, img_file in enumerate(images, start=1):
-        pages_to_add.append(img_file)
-
-    added_pages = 0
-
-    for i, img_file in enumerate(pages_to_add, start=1):
         img_path = os.path.join(extract_folder, img_file)
         
         # make sure they are images
@@ -84,9 +66,6 @@ def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", la
         with open(img_path, 'rb') as f:
             img_item = epub.EpubItem(uid=f"img{i}", file_name=img_file, media_type=f"image/{img_file.split('.')[-1]}", content=f.read())
             book.add_item(img_item)
-        added_pages += 1
-        progress("EPUB", len(pages_to_add), added_pages)
-    clear_progress()
 
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -124,13 +103,12 @@ def convert_images_to_target_dir(source, target):
     for file in os.listdir(source):
         if file.endswith((".webp", ".png", ".jpg")):
             amount_to_convert.append(f"{source}/{file}")
-                
-    converted_images = 0
-    for file in amount_to_convert:
-        convert_image_to_jpg(file)
-        converted_images += 1
-        progress("CONVERT", len(amount_to_convert), converted_images)
-    clear_progress()
+
+    with Progress(transient=True) as progress:
+        task = progress.add_task("[cyan]Converting images...", total=len(amount_to_convert))
+        for file in amount_to_convert:
+            convert_image_to_jpg(file)
+            progress.update(task, advance=1)
 
 def start_convert(url, delete_gallery_cache):
     parsed_url = parse_url(url)

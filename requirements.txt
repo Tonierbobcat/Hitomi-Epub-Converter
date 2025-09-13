@@ -1,3 +1,4 @@
 Pillow
 EbookLib
 gallery-dl
+rich
