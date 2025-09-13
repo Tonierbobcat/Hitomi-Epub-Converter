@@ -19,6 +19,7 @@ home = os.path.expanduser("~")
 data_folder = f"{home}/hitomi-epub-converter"
 cache_folder = f"{data_folder}/cache"
 tmp_folder = f"{data_folder}/tmp"
+debug = False
 
 def parse_url(url):
     decoded = urllib.parse.unquote(url)
@@ -153,7 +154,8 @@ def start_convert(url, delete_gallery_cache):
     # cleanup
     folders_to_delete = []
 
-    # folders_to_delete.append(delete_tmp)
+    if not debug:
+        folders_to_delete.append(delete_tmp)
     if delete_gallery_cache:
         folders_to_delete.append(delete_cache)
     for function in folders_to_delete:
