@@ -1,8 +1,8 @@
-## A CLI tool for converting hitomi.la managas into .epub files
+## A CLI tool for converting hitomi.la mangas into .epub files
+### ! This tool is a hitomi to epub converter !
+### This tool is intended for converting content you legally own. Do not use it for piracy.
 I had to whip up this cli tool because there are no others like it.
-People who read manga, doujinshi, mangwas etc, on e-readers, will find this tool extreamly useful.
-
-In the future I might add tools for batch converting.
+People who read manga, doujinshi, mangwas etc, on e-readers, will find this tool extremely useful.
 
 # Install dependencies
 ```bash
