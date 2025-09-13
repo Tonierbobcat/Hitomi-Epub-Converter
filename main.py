@@ -92,11 +92,21 @@ def exit_cannot_convert_epub(reason):
 
 def convert_images_to_target_dir(source, target):
     
+    kobo_libra_colour_pixels_y = 1680
+
     def convert_image_to_jpg(path):
         img = Image.open(path)
         img = img.convert("RGB")
+
+        # Calculate new width to maintain aspect ratio
+        orig_width, orig_height = img.size
+        if orig_height > kobo_libra_colour_pixels_y:
+            new_height = kobo_libra_colour_pixels_y
+            new_width = int(orig_width * (new_height / orig_height))
+            img = img.resize((new_width, new_height), Image.LANCZOS)
+
         base = os.path.splitext(os.path.basename(path))[0]
-        img.save(f"{target}/{base}.jpg", "JPEG")
+        img.save(f"{target}/{base}.jpg", "JPEG", quality=95)
 
     amount_to_convert = []
 
