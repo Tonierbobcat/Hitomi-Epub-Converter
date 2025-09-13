@@ -1,3 +1,5 @@
+A CLI tool for converting hitomi.la managas into epubs
+
 # Install dependencies
 ```bash
 python -m venv venv        # create a virtual environment (optional but recommended)
