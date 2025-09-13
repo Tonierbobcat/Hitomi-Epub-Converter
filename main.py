@@ -1,13 +1,14 @@
 import zipfile
 
 from PIL import Image
-from ebooklib import epub
+# from ebooklib import epub
 
 import subprocess
 import os
 import urllib.parse
 import shutil
 import sys
+import comicon
 import re
 from rich import print
 from rich.progress import Progress
@@ -36,61 +37,11 @@ def format_parsed_url(url):
 
     return basename
 
-def convert_to_pdf(extract_folder, output_pdf, title, id, author="Unknown", language="en"):
-    images = sorted(os.listdir(extract_folder))
-    images = [img for img in images if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
-  
-    image_list = []
-    for img_file in images:
-        img_path = os.path.join(extract_folder, img_file)
-        im = Image.open(img_path)
-        if im.mode != 'RGB':
-            im = im.convert('RGB')
-        image_list.append(im)
-    
-
-    if image_list:
-        first_image = image_list.pop(0)
-        print("Writing...")
-        first_image.save(output_pdf, save_all=True, append_images=image_list)
-
-def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", language="en"):
-    book = epub.EpubBook()
-
-    book.set_identifier(id)
-    book.set_title(title)
-    book.set_language(language)
-    book.add_author(author)
-
-    # collect as XHTML pages
-    images = sorted(os.listdir(extract_folder))
-
-    for i, img_file in enumerate(images, start=1):
-        img_path = os.path.join(extract_folder, img_file)
-        
-        # make sure they are images
-        im = Image.open(img_path)
-        if im.mode != "RGB":
-            im = im.convert("RGB")
-            im.save(img_path)
-        
-        # create XHTML page embedding with the imge
-        html_content = f'<html><body><img src="{img_file}" alt="{img_file}"/></body></html>'
-        c = epub.EpubHtml(title=f"Page {i}", file_name=f"page_{i}.xhtml", content=html_content)
-        book.add_item(c)
-        book.spine.append(c)
-
-        # add the image to the epub files
-        with open(img_path, 'rb') as f:
-            img_item = epub.EpubItem(uid=f"img{i}", file_name=img_file, media_type=f"image/{img_file.split('.')[-1]}", content=f.read())
-            book.add_item(img_item)
-
-    book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav())
-
-    # write
-    print("Writing...")
-    epub.write_epub(output_epub, book)
+def convert_cbz_to_epub(cbz, epub, pages):
+    with Progress(transient=True) as progress:
+        task = progress.add_task("[cyan]Converting cbz...", total=pages)
+        for value in comicon.convert_progress(cbz, epub):
+            progress.update(task, advance=1)
 
 def download_hitomi(target, url):
     config.set((), "base-directory", target)
@@ -186,16 +137,23 @@ def start_convert(url, delete_gallery_cache):
     # copy images to output and converts them
     convert_images_to_target_dir(hitomi_target, tmp_folder)
 
-    # convert to epub
-    # convert_to_epub(tmp_folder, output_epub, title, doujinshi_id)
+    # create cbz file
+    output_cbz = f"{tmp_folder}/{title}.cbz"
+    images = sorted(
+        [f for f in os.listdir(tmp_folder) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    )
+    with zipfile.ZipFile(output_cbz, 'w', zipfile.ZIP_DEFLATED) as cbz:
+        for image in images:
+            image_path = os.path.join(tmp_folder, image)
+            cbz.write(image_path, arcname=image)
 
-    output_epub = f"{data_folder}/{legal_title}.pdf"
-    convert_to_pdf(tmp_folder, output_epub, title, doujinshi_id)
+    # convert to epub
+    convert_cbz_to_epub(output_cbz, output_epub, len(images))
 
     # cleanup
     folders_to_delete = []
 
-    folders_to_delete.append(delete_tmp)
+    # folders_to_delete.append(delete_tmp)
     if delete_gallery_cache:
         folders_to_delete.append(delete_cache)
     for function in folders_to_delete:
