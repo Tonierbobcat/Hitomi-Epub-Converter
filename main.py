@@ -78,7 +78,13 @@ def convert_to_epub(extract_folder, title, author="Unknown", language="en", id="
 
 url = sys.argv[1]
 base = trim_url_to_name(url)
-output_epub = f"{base}.epub"
+home = os.path.expanduser("~")
+
+save_folder = f"{home}/hitomi-epub-converter"
+if not os.path.exists(save_folder):
+    os.mkdir(save_folder, mode=0o777)
+
+output_epub = f"{save_folder}/{base}.epub"
 delete_gallery_cache = False
 hitomi_target = "gallery-dl-cache"
 
