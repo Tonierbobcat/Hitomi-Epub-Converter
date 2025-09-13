@@ -85,6 +85,10 @@ def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", la
 def download_hitomi(target, url):
     config.set((), "base-directory", target)
     config.set((), "directory", ())
+
+    config.set((), "loglevel", "CRITICAL")
+    config.set(("output",), "mode", "null")
+
     extr = extractor.find(url)
     dl_job = job.DownloadJob(extr)
     dl_job.run()
