@@ -9,6 +9,8 @@ import urllib.parse
 import shutil
 import sys
 
+from gallery_dl import config, extractor, job
+
 def parse_url(url):
     decoded = urllib.parse.unquote(url)
     decoded = decoded.split('#')[0]
@@ -81,7 +83,11 @@ def convert_to_epub(extract_folder, output_epub, title, id, author="Unknown", la
     epub.write_epub(output_epub, book)
 
 def download_hitomi(target, url):
-    # subprocess.run(["gallery-dl", "-d", target, url])
+    config.set((), "base-directory", target)
+    config.set((), "directory", ())
+    extr = extractor.find(url)
+    dl_job = job.DownloadJob(extr)
+    dl_job.run()
     return
 
 def exit_cannot_convert_epub(reason):
@@ -99,14 +105,8 @@ def convert_images_to_target_dir(source, target):
     amount_to_convert = []
 
     for file in os.listdir(source):
-        if file.endswith((".webp", ".png", ".jpg")):sys.exit(0)
-            amount_to_convert.append(full_path)
-
-    # for root, dirs, files in os.walk(source):
-    #     for file in files:
-    #         if file.lower().endswith((".webp", ".png", ".jpg")):
-    #             full_path = os.path.join(root, file)
-    #             amount_to_convert.append(full_path)
+        if file.endswith((".webp", ".png", ".jpg")):
+            amount_to_convert.append(f"{source}/{file}")
                 
     converted_images = 0
     for file in amount_to_convert:
